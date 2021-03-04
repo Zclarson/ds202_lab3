@@ -1,6 +1,6 @@
 ---
-title: "Team.Rmd"
-author: "Julia Lundstrum, Nikole Slinger, and Zack Larson"
+title: "individual1ZL.Rmd"
+author: "Zack Larson"
 output: html_document
 ---
 
