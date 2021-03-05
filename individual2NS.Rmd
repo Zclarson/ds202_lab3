@@ -1,0 +1,117 @@
+---
+title: 'Lab #3'
+author: "Nikole Slinger"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r}
+library(dplyr)
+library(ggplot2)
+gss <- readxl::read_xls('GSS.xls')
+# renaming columns with better names
+gss <- rename(gss, Year = `Gss year for this respondent`,
+       Id = `Respondent id number`,
+       HoursWorked = `Number of hours worked last week`,
+       MaritalStatus = `Marital status`,
+       EducationYears = `Highest year of school completed`,
+       Party = `Political party affiliation`,
+       Belief = `Belief in life after death`,
+       Happiness = `General happiness`,
+       Ballot = `Ballot used for interview`)
+```
+
+### Problem 1.
+Find the average years of education for the respondents with each marital status. Arrange your output in a meaningful order and print. Describe any patterns you find.
+
+```{r}
+# grouping data by marital status and finding average education level
+gss %>% group_by(MaritalStatus) %>%
+  filter(MaritalStatus != 'No answer') %>%
+  summarize(mean_education = mean(as.numeric(EducationYears), na.rm=TRUE)) %>%
+  arrange(desc(mean_education))
+```
+
+When looking at the average number of years of education from each possible marital status, we can see that those with the highest average education are the people who have never been married at 13.4 years. The divorced group and the married group have very similar education on average, 13.1 and 13.0 years respectively. People who are seperated have an average education of 11.9 year, and finally the group with the least amount of education on average are those who are widowed at 11.2 years.
+
+### Problem 2.
+Create a single data frame containing records for the better educated respondents with each marital status. A “better educated” respondent is someone who has strictly more years of education than the average among those with the same marital status. Print the structure of the data frame.
+
+```{r}
+# creating data frame with 
+betterEducated <- gss %>% filter((MaritalStatus == 'Divorced' & EducationYears > 13.1) |
+                             (MaritalStatus == 'Married' & EducationYears > 13.0) | 
+                             (MaritalStatus == 'Never married' & EducationYears > 13.4) |
+                             (MaritalStatus == 'No answer' & EducationYears > 15.5) |
+                             (MaritalStatus == 'Separated' & EducationYears > 11.9) |
+                             (MaritalStatus == 'Widowed' & EducationYears > 11.2))
+str(betterEducated)
+```
+
+
+### Problem 3.
+How is the happiness of a respondent related to his/her marriage status? Define that a person is happy if the response to question is “Very happy” or “Pretty happy”.
+
+```{r}
+# creating date frame of desired happiness level
+happiness <- filter(gss, Happiness == 'Very happy' | Happiness == 'Pretty happy')
+
+p <- ggplot(happiness, aes(x = Happiness, y = MaritalStatus)) + geom_count()
+p + ggtitle('Marital Status vs. Happiness') + xlab('Hapiness') + ylab('Marital Status')
+
+# getting numerical count
+happiness %>% count(MaritalStatus)
+```
+
+The group with the highest happiness level is the Married group, with 29,342 people that are either 'Very happy' or 'Pretty happy'. The group with the lowest happiness level is people that have been seperated, with only 1,487 total people in the group. We are disregarding the 'No answer' group.
+
+### Problem 4.
+Does party affiliation affect the relationship you found in the last question?
+
+```{r}
+party <- gss %>% group_by(Party) %>% 
+  filter(Happiness == "Very happy" | Happiness == "Pretty happy")
+p <- ggplot(party, aes(x = Happiness, y = MaritalStatus)) + geom_count() + 
+  facet_grid(cols = vars(Party)) + theme(axis.text.x = element_text(angle = 90))
+p + ggtitle('How Political Party Affects Happiness vs. Marital Status') + 
+  xlab('Happiness') + ylab('Marital Status')
+
+# getting numerical count
+party %>% count(MaritalStatus)
+```
+
+Politcal party seems to have little, if any, effect on the relationship between Happiness and Marital Status. The Married group is still the most common among the happiest people, with the Never Married group second. The Seperated group is still the smallest, with the least amount of happiest people.
+
+### Problem 5.
+How is marital status related to the education of a respondent? What are possible reasons accounting for the patterns you see?
+
+```{r}
+gss %>% group_by(MaritalStatus) %>%
+  summarize(mean_education = mean(as.numeric(EducationYears), na.rm=TRUE)) %>%
+  arrange(desc(mean_education))
+```
+
+Marital Status and Education are somewhat related. We can see from the graph that those who were never married have the highest education level, while the Married group and Divorced group have a very similar education level. The group with the lowest education level is the Widowed group.
+
+### Problem 6.
+Explore two more interesting questions, and answer those questions using the GSS data.
+
+```{r}
+gss$HoursWorked <- as.numeric(as.character(gss$HoursWorked))
+group_by(gss, Happiness) %>% 
+  summarize(mean = mean(as.numeric(HoursWorked), na.rm = TRUE))
+
+ggplot(gss, aes(x = factor(Happiness), y = HoursWorked)) + 
+  stat_summary(fun = "mean", geom = "bar")
+```
+
+Above: Hours worked per week vs. Happiness
+
+```{r}
+ggplot(gss, aes(x = Belief, y = Happiness)) + geom_count()
+```
+
+Above: Belief after death vs. Happiess
