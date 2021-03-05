@@ -19,8 +19,8 @@ library(dplyr)
 library(readxl)
 data <- readxl::read_xls('./GSS.xls')
 
-#This is needed to easily handle column names in the future
-names(data)<-str_replace_all(names(data), c(" " = "." , "," = "" ))
+# This is needed to easily handle column names in the future
+names(data)<-str_replace_all(names(data), c(" " = "."))
 colnames(data)
 ```
 
@@ -32,32 +32,24 @@ The marital status is somewhat correlated with the person’s marital status as 
 # changing to numeric column
 data$Highest.year.of.school.completed <- as.numeric(as.character(data$Highest.year.of.school.completed))
 
-#This is to get the average 'highest year of school completed' per marital status
-data %>% group_by(Marital.status) %>% 
+# This is to get the average 'highest year of school completed' per marital status
+mar <- data %>% group_by(Marital.status) %>% 
   summarize(mean = mean(Highest.year.of.school.completed,na.rm = TRUE)) %>%
   arrange(desc(mean))
-
-p <- ggplot(data, aes(x = factor(Marital.status), y = Highest.year.of.school.completed)) + 
-  stat_summary(fun = "mean", geom = "bar")
-p + ggtitle('Marital Status vs. Education') + xlab('Marital Status') + ylab('Education')
+mar
+p <- ggplot(subset(mar, !is.na(Marital.status)), aes(x=reorder(Marital.status, -mean), weight=mean)) + geom_bar(fill = "blue") + ggtitle("Marital Status vs. Education") + ylab("Average Years of Education") + xlab("Marital Status")
+p
 ```
 
 #### Problem 2.
 Data frame structure for the Better Educated printed below.
 
 ```{r}
-# finding average of each marital group
-data %>% group_by(Marital.status) %>% 
-  summarize(avgMaritalStatus = mean(Highest.year.of.school.completed, na.rm=TRUE))
-
-#Using the averages above, we filter for the people who have the associated marital status and more years of school completed than the average of their marital status group
-betterEducated <- data %>% filter(
-    (Marital.status == "Divorced" & Highest.year.of.school.completed > 13.1) |
-    (Marital.status == "Married" & Highest.year.of.school.completed > 13.0) |
-    (Marital.status == "Never married" & Highest.year.of.school.completed > 13.4) | 
-    (Marital.status == "No answer" & Highest.year.of.school.completed > 15.5) | 
-    (Marital.status == "Separated" & Highest.year.of.school.completed > 11.9) |
-    (Marital.status == "Widowed" & Highest.year.of.school.completed > 11.2))
+# We filter for the people who have the associated marital status and more years of school completed than the average of their marital status group
+betterEducated <- data %>% 
+    group_by(Marital.status) %>%
+    filter(Highest.year.of.school.completed > mean(Highest.year.of.school.completed, na.rm=TRUE)) %>%
+    ungroup()
 str(betterEducated)
 ```
 
@@ -72,7 +64,7 @@ p <- ggplot(happiness, aes(x = General.happiness, y = Marital.status)) + geom_co
 p + ggtitle('Marital Status vs. Happiness') + xlab('Hapiness') + ylab('Marital Status')
 
 p <- ggplot(happiness, aes(x = Marital.status, fill = General.happiness)) + 
-  geom_bar(position = 'fill')
+  geom_bar(position = 'dodge')
 p + ggtitle('Marital Status vs. Happiness') + xlab('Hapiness') + ylab('Marital Status')
 
 tail(names(sort(table(happiness$Marital.status))), 1)
@@ -86,7 +78,7 @@ Political party affiliation does not seem to have much of an effect on the relat
 
 If we had to nit pick, it seems that the at each intensity of the political spectrum (ex. strong, not strong, etc.), the Democratic people seem to be more populated in the happy graphs compared to Republicans. However, because it looks so close, we probably can't conclude that as a fact, just a interesting observation/correlation. Another interesting finding is that, like the previous graph, these ones show that there are more people considered to be 'Pretty happy' than 'Very happy', but the distributions of those are correlated evenly with the ones who are pretty happy too. Finally, we found that the political affiliation that was most popular among very happy people are 'Not strong democrats', which helps our case for our earlier statement saying that it seems like democrats are overall more happy compared to republicans. 
 
-```{r}
+```{r, fig.width=10, fig.height=4}
 # creating political party data frame
 party <- data %>% group_by(Political.party.affiliation) %>% 
   filter(General.happiness == "Very happy" | General.happiness == "Pretty happy")
@@ -98,7 +90,7 @@ p <- ggplot(party, aes(x = General.happiness, y = Marital.status)) + geom_count(
 p + ggtitle('How Political Party Affects Happiness vs. Marital Status') + 
   xlab('Happiness') + ylab('Marital Status')
 
-#This shows the most popular party affiliation among 'happy' people
+# This shows the most popular party affiliation among 'happy' people
 tail(names(sort(table(party$Political.party.affiliation))), 1)
 
 # getting numerical count
@@ -114,8 +106,7 @@ Finally, we can look at the numerical summaries to get more specific measurement
 
 ```{r}
 # visual plots for marital status vs. education
-p <- ggplot(data, aes(x = factor(Marital.status), y = Highest.year.of.school.completed)) + 
-  stat_summary(fun = "mean", geom = "bar")
+p <- ggplot(subset(mar, !is.na(Marital.status)), aes(x=reorder(Marital.status, -mean), weight=mean)) + geom_bar(fill = "navy") 
 p + ggtitle('Marital Status vs. Education Level') + 
   xlab('Marital Status') + ylab('Education Level (years)')
 
@@ -145,12 +136,12 @@ data$Number.of.hours.worked.last.week <- as.numeric(as.character(data$Number.of.
 group_by(data, General.happiness) %>% 
   summarize(m = mean(Number.of.hours.worked.last.week,na.rm = TRUE))
 
-#This shows the most popular number of hours worked in a week among 'happy' people
+# This shows the most popular number of hours worked in a week among 'happy' people
 tail(names(sort(table(data$Number.of.hours.worked.last.week))), 1)
 
 # graphical summary
-p <- ggplot(data, aes(x = factor(General.happiness), y = Number.of.hours.worked.last.week)) + 
-  stat_summary(fun = "mean", geom = "bar")
+p <- ggplot(subset(data, !is.na(General.happiness)), aes(x = factor(General.happiness), y = Number.of.hours.worked.last.week)) + 
+  stat_summary(fun = "mean", geom = "bar", fill = "orange")
 p + ggtitle('Happiness vs. Hours Worked') + 
   xlab('Happiness') + ylab('Hours Worked per Week')
 ```
@@ -158,19 +149,21 @@ p + ggtitle('Happiness vs. Hours Worked') +
 Next, we evaluated the potential correlation between one's belief in life after death and their overall happiness. For this, we looked at the frequency and distributions of a person's level of happiness and compared it to their beliefs in what happens to life after death. We found that the slight majority of people surveyed said that they did believe in life after death and that they were also mostly 'Pretty happy' or 'Very happy'. People who said 'Yes' (there is life after death) were also more likely to be 'Not happy', but we believe that's due to how popular the vote for 'Yes' was. Looking at the sizes of 'Happy' compared to 'Not happy' show that the ratio of 'Happy' and 'Not happy' for 'Yes' and 'No' people are pretty close but with a slight edge to 'Very happy' people who believe in life after death. This group showed more people than other ratios of happiness. Finally, when looking at the filled bar chart, we can see that the distribution of the different happiness levels for those who answered 'Yes', 'No', and 'Don't know' are very similar, which leads us to the conclusion that there is little correlation between a person's beliefs and their general happiness.
 
 ```{r}
+# removing all NA answers
+belief <- data %>% filter((Belief.in.life.after.death != 'NA'))
+
 # happiness vs. belief
-p <- ggplot(data, aes(x = Belief.in.life.after.death, y = General.happiness)) + geom_count()
+p <- ggplot(belief, aes(x = Belief.in.life.after.death, y = General.happiness)) + geom_count()
 p + ggtitle('Happiness vs. Belief in Life After Death') + 
   xlab('Happiness') + ylab('Belief in Life After Death')
 
-# removing all NA answers
-belief <- data %>% filter((Belief.in.life.after.death != 'NA'))
+# bar chart of happiness vs. belief
 p <- ggplot(belief, aes(x = Belief.in.life.after.death, fill = General.happiness)) + 
   geom_bar(position = 'fill')
 p + ggtitle('Happiness vs. Belief in Life After Death') + 
   xlab('Happiness') + ylab('Belief in Life After Death')
 
-#This shows the most popular belief among 'happy' people
+# This shows the most popular belief among 'happy' people
 tail(names(sort(table(data$Belief.in.life.after.death))), 1)
 ```
 
