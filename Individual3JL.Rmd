@@ -1,0 +1,96 @@
+---
+title: "Individual3JL"
+author: "Julia Lundstrum"
+date: "3/4/2021"
+output: html_document
+---
+
+## Lab 3
+### Part 1
+```{r}
+library(tidyverse)
+library(readxl)
+library(ggplot2)
+library(dplyr)
+df <- readxl::read_xls('./GSS.xls')
+df
+```
+
+### Part 2
+#### Question 1
+```{r}
+names(df) <- str_replace_all(names(df), c(" " = "_"))
+df$Highest_year_of_school_completed <- as.numeric(as.character(df$Highest_year_of_school_completed))
+df$Marital_status <- factor(df$Marital_status, levels = c("No answer", "Never married", "Divorced","Married","Separated", "Widowed"))
+ms <- df %>%
+  group_by(Marital_status) %>% 
+  summarize(
+    mean_rate = mean(Highest_year_of_school_completed, na.rm=TRUE)
+  )
+ms
+```
+
+Disregarding no answers, those who have never been married had completed the most education followed by those who had been divorced. Widows had the least number of years of education completed in this data set.
+
+#### Question 2
+```{r}
+be <- df %>% 
+  group_by(Marital_status) %>%
+  filter(Highest_year_of_school_completed > mean(Highest_year_of_school_completed, na.rm=TRUE)) %>%
+  ungroup()
+str(be)
+```
+
+#### Question 3
+```{r}
+happy <- df %>% filter(General_happiness == "Very happy" | General_happiness == "Pretty happy")
+ggplot(happy, aes(Marital_status, fill =General_happiness)) + geom_bar(position = "dodge")  + ggtitle("Happiness and Marital Status") + ylab("Number of People") + xlab("Marital Status")
+happy %>% count(Marital_status)
+```
+
+The most people who answered that they were pretty happy or very happy are married, followed by those who have never been married. Those who were happy were least likely to be separated, disregarding the no answer responses.
+
+#### Question 4
+```{r, fig.width=8, fig.height=2}
+pa <- happy %>% group_by(Political_party_affiliation)
+ggplot(pa, aes(Marital_status, fill = General_happiness)) + geom_bar(position = "dodge") + facet_grid(cols = vars(Political_party_affiliation)) + theme(axis.text.x = element_text(angle = 90)) + ggtitle("Political Party with Happiness and Marital Status") + ylab("Number of People") + xlab("Marital Status")
+pa %>% count(Marital_status)
+```
+
+There does not appear to be a strong difference between happiness and marital status by political party. It does seem like Democrats' marital status are a bit more uniform than the Republicans who answered.
+
+#### Question 5
+
+```{r}
+ms
+ggplot(subset(ms, !is.na(Marital_status)), aes(x=Marital_status, weight=mean_rate)) + geom_bar(fill = "Navy") + ggtitle("Average Years of Education by each Marital Status") + ylab("Average Years of Education") + xlab("Marital Status")
+```
+
+The appears to be a moderate correlation between marital status and number of years of education. There are a variety of reasons that could account for this correlation and correlation does not necessary mean causation. Those with less responsibilities might have more time to complete higher education.
+
+#### Question 6
+First question I want to explore: How does number of hours worked impact party affiliation?
+```{r}
+df$Number_of_hours_worked_last_week <- as.numeric(as.character(df$Number_of_hours_worked_last_week))
+hr <- df %>%
+  group_by(Political_party_affiliation) %>% 
+  summarize(
+    mean_rate = mean(Number_of_hours_worked_last_week, na.rm=TRUE)
+  )
+hr
+ggplot(subset(hr, !is.na(Political_party_affiliation)), aes(x=Political_party_affiliation, weight=mean_rate)) + geom_bar(fill = "Blue") + theme(axis.text.x = element_text(angle = 90)) + ggtitle("Number of Hours Worked by each Political Party Affiliation") + ylab("Average Number of Hours Worked Last Week") + xlab("Political Party Affiliation")
+```
+
+There does not appear to be a significant correlation between the number of hours worked last week and political party affiliation. 
+
+Second question I want to explore: How does highest year of education completed impact party affiliation?
+```{r}
+ed <- df %>%
+  group_by(Political_party_affiliation) %>% 
+  summarize(
+    mean_rate = mean(Highest_year_of_school_completed, na.rm=TRUE)
+  )
+ggplot(subset(ed, !is.na(Political_party_affiliation)), aes(x=Political_party_affiliation, weight=mean_rate)) + geom_bar(fill = "deepskyblue") + theme(axis.text.x = element_text(angle = 90)) + ggtitle("Years of Education Completed by each Political Party Affiliation") + ylab("Average Years of Education Completed") + xlab("Political Party Affiliation")
+```
+
+There does not appear to be a significant correlation between the years of education completed and political party affiliation. 
