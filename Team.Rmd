@@ -18,6 +18,8 @@ library(ggplot2)
 library(dplyr)
 library(readxl)
 data <- readxl::read_xls('./GSS.xls')
+
+#This is needed to easily handle column names in the future
 names(data)<-str_replace_all(names(data), c(" " = "." , "," = "" ))
 colnames(data)
 ```
@@ -30,6 +32,7 @@ The marital status is somewhat correlated with the person’s marital status as 
 # changing to numeric column
 data$Highest.year.of.school.completed <- as.numeric(as.character(data$Highest.year.of.school.completed))
 
+#This is to get the average 'highest year of school completed' per marital status
 data %>% group_by(Marital.status) %>% 
   summarize(mean = mean(Highest.year.of.school.completed,na.rm = TRUE)) %>%
   arrange(desc(mean))
@@ -47,6 +50,7 @@ Data frame structure for the Better Educated printed below.
 data %>% group_by(Marital.status) %>% 
   summarize(avgMaritalStatus = mean(Highest.year.of.school.completed, na.rm=TRUE))
 
+#Using the averages above, we filter for the people who have the associated marital status and more years of school completed than the average of their marital status group
 betterEducated <- data %>% filter(
     (Marital.status == "Divorced" & Highest.year.of.school.completed > 13.1) |
     (Marital.status == "Married" & Highest.year.of.school.completed > 13.0) |
@@ -94,6 +98,7 @@ p <- ggplot(party, aes(x = General.happiness, y = Marital.status)) + geom_count(
 p + ggtitle('How Political Party Affects Happiness vs. Marital Status') + 
   xlab('Happiness') + ylab('Marital Status')
 
+#This shows the most popular party affiliation among 'happy' people
 tail(names(sort(table(party$Political.party.affiliation))), 1)
 
 # getting numerical count
@@ -130,7 +135,7 @@ data %>% group_by(Marital.status) %>%
 ```
 
 #### Problem 6.
-We evaluated two potnetial relations: Number of Work Hours a Week VS. General Happiness and Belief in Life After Death VS. General Happiness. For the first relationship, we looked at the average number of hours worked for each category in 'General happiness' and compared them to each other to see which level of happiness tends to work more or less. Overall, the averages were all pretty close (all within the range of 40-46 hours a week). However, out of all of the people who directly answered the question, the group who worked the most amount of hours, on average, were the most happiest. Meanwhile, the people in the 'Not happy' group definitely showed that they worked the least amount. This could possibly be that because they don't have a job or are unemployed, they are unhappy. Another explanation, looking from a different perspective, may be that those who have found a job or career that they are truly interested in find happiness in their work, so they work more hours and are more happier.
+We evaluated two potential relations: Number of Work Hours a Week VS. General Happiness and Belief in Life After Death VS. General Happiness. For the first relationship, we looked at the average number of hours worked for each category in 'General happiness' and compared them to each other to see which level of happiness tends to work more or less. Overall, the averages were all pretty close (all within the range of 40-46 hours a week). However, out of all of the people who directly answered the question, the group who worked the most amount of hours, on average, were the most happiest. Meanwhile, the people in the 'Not happy' group definitely showed that they worked the least amount. This could possibly be that because they don't have a job or are unemployed, they are unhappy. Another explanation, looking from a different perspective, may be that those who have found a job or career that they are truly interested in find happiness in their work, so they work more hours and are more happier.
 
 ```{r}
 # happiness vs. work
@@ -140,6 +145,7 @@ data$Number.of.hours.worked.last.week <- as.numeric(as.character(data$Number.of.
 group_by(data, General.happiness) %>% 
   summarize(m = mean(Number.of.hours.worked.last.week,na.rm = TRUE))
 
+#This shows the most popular number of hours worked in a week among 'happy' people
 tail(names(sort(table(data$Number.of.hours.worked.last.week))), 1)
 
 # graphical summary
@@ -164,6 +170,7 @@ p <- ggplot(belief, aes(x = Belief.in.life.after.death, fill = General.happiness
 p + ggtitle('Happiness vs. Belief in Life After Death') + 
   xlab('Happiness') + ylab('Belief in Life After Death')
 
+#This shows the most popular belief among 'happy' people
 tail(names(sort(table(data$Belief.in.life.after.death))), 1)
 ```
 
