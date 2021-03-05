@@ -10,75 +10,162 @@ knitr::opts_chunk$set(echo = TRUE)
 
 ## Lab 3
 ### Part 1
+Initial data cleaning up:
+
 ```{r}
 library(tidyverse)
+library(ggplot2)
+library(dplyr)
 library(readxl)
 data <- readxl::read_xls('./GSS.xls')
-data
+names(data)<-str_replace_all(names(data), c(" " = "." , "," = "" ))
+colnames(data)
 ```
 
 ### Part 2
-#### 1.
-The marital status is somewhat affected by the people’s marital status as shown in the graph below.This one shows the average number of years completed per marital status and it shows that never married people have the highest average among those who answered the question. This is showing that the "never married" people probably have more time to complete more years while the married people do not as much. It is interesting that the separated and widowed people have a slightly lower average than the other marital statuses. This could be because they are older (widowed are most likely older and less need for more school years back then) or for some other reason.
+#### Problem 1.
+The marital status is somewhat correlated with the person’s marital status as shown in the graph and numerical summary below. It shows us the average number of years completed per marital status and it shows that people in the 'Never married' group have the highest education level on average among those who answered the question, at 13.4 years. This is probably because those who have never been married likely have more time to complete more years of schooling, while those who are married do not as much time. People in the 'Married' and 'Divorced group have a very similar education level, at 13.0 and 13.1 respectively. We found it interesting that the people in the 'Separated' and 'Widowed' group have a lower average education level than the other groups. This could possibly be because they are older (as widows are most likely older and had less of a need for more schooling years ago) or maybe for some other reason.
+
 ```{r}
-library(ggplot2)
-library(dplyr)
-names(data)<-str_replace_all(names(data), c(" " = "." , "," = "" ))
-colnames(data)
+# changing to numeric column
 data$Highest.year.of.school.completed <- as.numeric(as.character(data$Highest.year.of.school.completed))
-group_by(data, Marital.status) %>% summarize(m = mean(Highest.year.of.school.completed,na.rm = TRUE))
-ggplot(data, aes(x = factor(Marital.status), y = Highest.year.of.school.completed)) + 
+
+data %>% group_by(Marital.status) %>% 
+  summarize(mean = mean(Highest.year.of.school.completed,na.rm = TRUE)) %>%
+  arrange(desc(mean))
+
+p <- ggplot(data, aes(x = factor(Marital.status), y = Highest.year.of.school.completed)) + 
   stat_summary(fun = "mean", geom = "bar")
+p + ggtitle('Marital Status vs. Education') + xlab('Marital Status') + ylab('Education')
 ```
 
-#### 2.
-```{r}
-data %>% group_by(Marital.status) %>% summarize(avgMaritalStatus = mean(Highest.year.of.school.completed,na.rm=TRUE))##Find the average of each group
+#### Problem 2.
+Data frame structure for the Better Educated printed below.
 
-newData <- data %>% filter((Marital.status == "Divorced" & Highest.year.of.school.completed > 13.1) | (Marital.status == "Married" & Highest.year.of.school.completed > 13.0) | (Marital.status == "Never married" & Highest.year.of.school.completed > 13.4) | (Marital.status == "No answer" & Highest.year.of.school.completed > 15.5) | (Marital.status == "Separated" & Highest.year.of.school.completed > 11.9) | (Marital.status == "Widowed" & Highest.year.of.school.completed > 11.2))
-str(newData)
-View(newData)
+```{r}
+# finding average of each marital group
+data %>% group_by(Marital.status) %>% 
+  summarize(avgMaritalStatus = mean(Highest.year.of.school.completed, na.rm=TRUE))
+
+betterEducated <- data %>% filter(
+    (Marital.status == "Divorced" & Highest.year.of.school.completed > 13.1) |
+    (Marital.status == "Married" & Highest.year.of.school.completed > 13.0) |
+    (Marital.status == "Never married" & Highest.year.of.school.completed > 13.4) | 
+    (Marital.status == "No answer" & Highest.year.of.school.completed > 15.5) | 
+    (Marital.status == "Separated" & Highest.year.of.school.completed > 11.9) |
+    (Marital.status == "Widowed" & Highest.year.of.school.completed > 11.2))
+str(betterEducated)
 ```
 
-#### 3.
-Looking at the data of people who are considered "pretty happy" or very happy", we found that the most popular marital status of this group of people are "Married". Looking at the graph, it confirms this finding as well as show results where the least popular marital status is. For example, it looks like "separated" people were among the least happy. We disregard the "No answer" people because that doesn't tell us any real life data. In addition, it confirms that "Never married" people are generally happier than "Divorced" or "Widowed" people. This is how the marital status is related to a person's general happiness.
+#### Problem 3.
+Marital status seems to have some relation to a person's general happiness. Looking at the data of people who are considered 'Pretty happy' or 'Very happy', we found that the marital group with the most amount of people in the highest happiness levels is the 'Married' group, with 29,342 people. Both the graph and the count confirm this finding as well as give us insight to the other marital groups as well. It looks like the people in the 'Separated' group are among the least happy, with there only being 1,487 people. In addition, it shows us that 'Never married' people are generally happier than both 'Divorced' and 'Widowed' people. A final note is that there appears to be more 'Pretty happy' people than 'Very happy' people in general. We are disregarding the 'No answer' group because it doesn't tell us any real life data.
+
 ```{r}
-data2 <- data %>% filter(General.happiness == "Very happy" | General.happiness == "Pretty happy")
-ggplot(data2,aes(x=General.happiness,y=Marital.status)) + geom_count()
-tail(names(sort(table(data2$Marital.status))), 1)
+# creating date frame of desired happiness level
+happiness <- filter(data, General.happiness == 'Very happy' | General.happiness == 'Pretty happy')
+
+p <- ggplot(happiness, aes(x = General.happiness, y = Marital.status)) + geom_count()
+p + ggtitle('Marital Status vs. Happiness') + xlab('Hapiness') + ylab('Marital Status')
+
+p <- ggplot(happiness, aes(x = Marital.status, fill = General.happiness)) + 
+  geom_bar(position = 'fill')
+p + ggtitle('Marital Status vs. Happiness') + xlab('Hapiness') + ylab('Marital Status')
+
+tail(names(sort(table(happiness$Marital.status))), 1)
+
+# getting numerical count
+happiness %>% count(Marital.status)
 ```
 
-#### 4.
-Political party affiliation does not affect the relationship between the marital status and general happiness of a person too much because in the graphs I found that regardless of political party, "Married" people were still the most popular marital status for happy people and separated people were still among the least happy. If I had to nit pick, it seems that the at each intensity of the political spectrum(ex. Strong, not strong) the democratic people seemed to be more populated in the happy graphs compared to Republicans, but it looks very close so we probably can't conclude that as a fact, just a interesting observation. Another interesting finding is that, like the previous graph, these ones show that there are more people considered to be pretty happy than very happy, but the distributions of those are correlated evenly with the ones who are pretty happy too.Finally, we found that the political affiliation that was most popular among "hapy" people are not strong democrats which would help our case for our earlier statement saying it looks like democrats overall show as happy people compared to republican. 
+#### Problem 4.
+Political party affiliation does not seem to have much of an effect on the relationship between the marital status and general happiness of a person. In the graphs and numerical summaries, we found that regardless of political party, those in the 'Married' group were still the most popular marital status for happy people and separated people were still among the least happy. Not only that, it looks that the amount of people (based on dot size) is roughly the same across the x-axis for each group.
+
+If we had to nit pick, it seems that the at each intensity of the political spectrum (ex. strong, not strong, etc.), the Democratic people seem to be more populated in the happy graphs compared to Republicans. However, because it looks so close, we probably can't conclude that as a fact, just a interesting observation/correlation. Another interesting finding is that, like the previous graph, these ones show that there are more people considered to be 'Pretty happy' than 'Very happy', but the distributions of those are correlated evenly with the ones who are pretty happy too. Finally, we found that the political affiliation that was most popular among very happy people are 'Not strong democrats', which helps our case for our earlier statement saying that it seems like democrats are overall more happy compared to republicans. 
+
 ```{r}
-data3 <- data %>% group_by(Political.party.affiliation) %>% filter(General.happiness == "Very happy" | General.happiness == "Pretty happy")
-ggplot(data3,aes(x=General.happiness,y=Marital.status)) + geom_count() + facet_grid(cols = vars(Political.party.affiliation))
-tail(names(sort(table(data3$Political.party.affiliation))), 1)
+# creating political party data frame
+party <- data %>% group_by(Political.party.affiliation) %>% 
+  filter(General.happiness == "Very happy" | General.happiness == "Pretty happy")
+
+# visual plot for party vs happiness relationship
+p <- ggplot(party, aes(x = General.happiness, y = Marital.status)) + geom_count() + 
+  facet_grid(cols = vars(Political.party.affiliation)) + 
+  theme(axis.text.x = element_text(angle = 90))
+p + ggtitle('How Political Party Affects Happiness vs. Marital Status') + 
+  xlab('Happiness') + ylab('Marital Status')
+
+tail(names(sort(table(party$Political.party.affiliation))), 1)
+
+# getting numerical count
+party %>% count(Marital.status)
 ```
 
-#### 5.
-The marital status is somewhat affected by the person's marital status as shown in the graphs below.The first one shows the average number of years completed per marital status and it shows that never married people have the highest average among those who answered the question. This is telling that the never married people probably have more time to complete more years while the married people don't as much. It is interesting that the separated and widowed people have a slightly lower average than the other marital statuses. This could be because they are older (less need for more school years back then) or for some other reason. In the second graph, this tells us where the majority of people associate themselves for these 2 values. Looking at each marital status we can see the distribution of school years completed. For example, among married people, the most popular range of year of school completed are about 12-16 where as for widowed people, the most popular range of year of school completed are about 8-14. Finally, we filter for people who have over 13 years of school completed and we found that married is the most popular marital status among people with over 13 years of school completed.
+#### Problem 5.
+Education is somewhat related to the person's marital status as shown in the graphs and numerical summaires below. The first graph shows the average number of years completed in each marital status group, which shows that people in the 'Never married' group have the highest average (once again we are disregarding the 'No answer' group). This explains to us once again that the 'Never married' people probably have more time to complete more years of school while the people in the 'Married' group don't have as much, as they might be focused on their relationship or families. It is interesting to note that the people in the 'Separated' and 'Widowed' group have a slightly lower average than the other marital statuses. This could be because they are older (less demand for more schooling years ago) or for some other reason unrelated to the variables.
+
+In the second graph, this shows us where the majority of people associate themselves for these 2 values. Looking at each marital status we can see the distribution of school years completed. For example, among those in the 'Married' group, the most popular range of year of school completed are between 12 and 16 years, where as for people in the 'Widowed' group, the most popular range of year of school completed is between 8 and 14 years.
+
+Finally, we can look at the numerical summaries to get more specific measurements from the data. If we filter for people who have over 13 years of school completed (which we considered as higher educated), we found that 'Married' is the most popular marital status among people with over 13 years of school completed, telling us that there is likely a correlation between being married and having a high education. We can also look at the specific average values for education level per marital status, and we found that once again that the 'Never married' group has the highest average education at 13.4 years and the 'Widowed' group has the lowest at 11.2 years.
+
 ```{r}
-ggplot(data,aes(x=factor(Marital.status),y=Highest.year.of.school.completed)) + stat_summary(fun = "mean", geom = "bar")
-ggplot(data,aes(x=Marital.status,y=Highest.year.of.school.completed)) + geom_count()
-data <- data %>% group_by(Marital.status) %>% filter(Highest.year.of.school.completed>13)
-tail(names(sort(table(data$Marital.status))), 1)
+# visual plots for marital status vs. education
+p <- ggplot(data, aes(x = factor(Marital.status), y = Highest.year.of.school.completed)) + 
+  stat_summary(fun = "mean", geom = "bar")
+p + ggtitle('Marital Status vs. Education Level') + 
+  xlab('Marital Status') + ylab('Education Level (years)')
+
+p <- ggplot(data, aes(x = Marital.status, y = Highest.year.of.school.completed)) +
+  geom_count()
+p + ggtitle('Marital Status vs. Education Level') + 
+  xlab('Marital Status') + ylab('Education Level (years)')
+
+# numerical summaries: marital group with highest education and mean educations
+highEducation <- data %>% group_by(Marital.status) %>%
+  filter(Highest.year.of.school.completed > 13)
+tail(names(sort(table(highEducation$Marital.status))), 1)
+
+data %>% group_by(Marital.status) %>%
+  summarize(mean = mean(as.numeric(Highest.year.of.school.completed), na.rm=TRUE)) %>%
+  arrange(desc(mean))
 ```
 
-#### 6.
-I evaluated two potnetial relations: number of work hours a week vs general happiness and belief in life after death vs general happiness. For the first one,I looked at the average number of hours each category of happiness worked and compared them to each other to see which level of happiness tends to work more or less. Overall, the average were all pretty close (within the range of 40-46 hours a week), but out of the people who directly answered the question, the people who worked the most average hours were the happiest. While the "not happy" group definitely showed they worked the least amount. This could be because they don't have a job so they are unhappy because they are unemployed and also not working hours because they are unemployed so this makes sense.
-
-Next, I evaluated the potential correlation between one's belief in life after death and their overall happiness. For this, I looked at the frequency and distributions of the level of happiness compared to the person's beliefs in life after death or not. I found that the slight majority of people surveyed said that they did believe in life after death and that they were mostly pretty happy or very happy. People who said yes were also more likely to be not happy but that's because the popular vote was yes. Looking at the sizes of happy vs not happy show that the ratio of happy and not happy for yes and no people are pretty close but with a slight edge to very happy  people who believe in life after death. This group showed more people than other ratios of happiness.
-
+#### Problem 6.
+We evaluated two potnetial relations: Number of Work Hours a Week VS. General Happiness and Belief in Life After Death VS. General Happiness. For the first relationship, we looked at the average number of hours worked for each category in 'General happiness' and compared them to each other to see which level of happiness tends to work more or less. Overall, the averages were all pretty close (all within the range of 40-46 hours a week). However, out of all of the people who directly answered the question, the group who worked the most amount of hours, on average, were the most happiest. Meanwhile, the people in the 'Not happy' group definitely showed that they worked the least amount. This could possibly be that because they don't have a job or are unemployed, they are unhappy. Another explanation, looking from a different perspective, may be that those who have found a job or career that they are truly interested in find happiness in their work, so they work more hours and are more happier.
 
 ```{r}
-#work
+# happiness vs. work
 data$Number.of.hours.worked.last.week <- as.numeric(as.character(data$Number.of.hours.worked.last.week))
-group_by(data, General.happiness) %>% summarize(m = mean(Number.of.hours.worked.last.week,na.rm = TRUE))
-ggplot(data, aes(x = factor(General.happiness), y = Number.of.hours.worked.last.week)) + 
-  stat_summary(fun = "mean", geom = "bar")
+
+# numerical summary
+group_by(data, General.happiness) %>% 
+  summarize(m = mean(Number.of.hours.worked.last.week,na.rm = TRUE))
+
 tail(names(sort(table(data$Number.of.hours.worked.last.week))), 1)
-#Belief
-ggplot(data,aes(x=Belief.in.life.after.death,y=General.happiness)) + geom_count()
+
+# graphical summary
+p <- ggplot(data, aes(x = factor(General.happiness), y = Number.of.hours.worked.last.week)) + 
+  stat_summary(fun = "mean", geom = "bar")
+p + ggtitle('Happiness vs. Hours Worked') + 
+  xlab('Happiness') + ylab('Hours Worked per Week')
+```
+
+Next, we evaluated the potential correlation between one's belief in life after death and their overall happiness. For this, we looked at the frequency and distributions of a person's level of happiness and compared it to their beliefs in what happens to life after death. We found that the slight majority of people surveyed said that they did believe in life after death and that they were also mostly 'Pretty happy' or 'Very happy'. People who said 'Yes' (there is life after death) were also more likely to be 'Not happy', but we believe that's due to how popular the vote for 'Yes' was. Looking at the sizes of 'Happy' compared to 'Not happy' show that the ratio of 'Happy' and 'Not happy' for 'Yes' and 'No' people are pretty close but with a slight edge to 'Very happy' people who believe in life after death. This group showed more people than other ratios of happiness. Finally, when looking at the filled bar chart, we can see that the distribution of the different happiness levels for those who answered 'Yes', 'No', and 'Don't know' are very similar, which leads us to the conclusion that there is little correlation between a person's beliefs and their general happiness.
+
+```{r}
+# happiness vs. belief
+p <- ggplot(data, aes(x = Belief.in.life.after.death, y = General.happiness)) + geom_count()
+p + ggtitle('Happiness vs. Belief in Life After Death') + 
+  xlab('Happiness') + ylab('Belief in Life After Death')
+
+# removing all NA answers
+belief <- data %>% filter((Belief.in.life.after.death != 'NA'))
+p <- ggplot(belief, aes(x = Belief.in.life.after.death, fill = General.happiness)) + 
+  geom_bar(position = 'fill')
+p + ggtitle('Happiness vs. Belief in Life After Death') + 
+  xlab('Happiness') + ylab('Belief in Life After Death')
+
 tail(names(sort(table(data$Belief.in.life.after.death))), 1)
 ```
+
+
+
